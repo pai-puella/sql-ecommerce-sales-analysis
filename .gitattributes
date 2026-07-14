@@ -1,12 +1,16 @@
 # Language statistics tuning for GitHub Linguist
-# This is a SQL-first project; keep the language bar representative.
+# SQL is the primary language; Python and Jupyter are secondary.
 
-# Do not count Jupyter notebooks toward the language stats (they are large JSON).
-*.ipynb linguist-vendored
-
-# Make sure SQL files are detected and counted.
+# SQL — primary language
 *.sql linguist-detectable=true
 sql/** linguist-language=SQL
 
-# Treat markdown docs as documentation.
+# Python — counted as secondary language
+*.py linguist-detectable=true
+
+# Jupyter notebooks — counted (overriding default JSON detection)
+*.ipynb linguist-detectable=true
+*.ipynb linguist-language=Python
+
+# Markdown — documentation
 *.md linguist-documentation
