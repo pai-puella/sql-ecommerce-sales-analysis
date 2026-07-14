@@ -98,3 +98,25 @@ SELECT
     ) AS median_days
 FROM first_two
 WHERE order_seq = 2;
+
+-- ------------------------------------------------------------
+-- 4. Top-10 покупателей по суммарной выручке
+-- ------------------------------------------------------------
+WITH customer_revenue AS (
+    SELECT
+        c.customer_unique_id,
+        COUNT(DISTINCT o.order_id) AS orders_count,
+        SUM(oi.price)              AS total_revenue
+    FROM raw.orders o
+    JOIN raw.customers c   ON o.customer_id = c.customer_id
+    JOIN raw.order_items oi ON o.order_id = oi.order_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY c.customer_unique_id
+)
+SELECT
+    customer_unique_id,
+    orders_count,
+    ROUND(total_revenue, 2) AS total_revenue
+FROM customer_revenue
+ORDER BY total_revenue DESC
+LIMIT 10;
