@@ -59,3 +59,42 @@ SELECT
 FROM orders_per_customer
 GROUP BY orders_count
 ORDER BY orders_count;
+
+-- ------------------------------------------------------------
+-- 3. Дни между первой и второй покупкой (для повторных клиентов)
+-- Используем ROW_NUMBER для нумерации заказов и LAG для интервала.
+-- ------------------------------------------------------------
+WITH customer_orders AS (
+    SELECT
+        c.customer_unique_id,
+        o.order_purchase_timestamp,
+        ROW_NUMBER() OVER (
+            PARTITION BY c.customer_unique_id
+            ORDER BY o.order_purchase_timestamp
+        ) AS order_seq
+    FROM raw.orders o
+    JOIN raw.customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status = 'delivered'
+),
+first_two AS (
+    -- Берём только первые две покупки каждого клиента
+    SELECT
+        customer_unique_id,
+        order_purchase_timestamp,
+        order_seq,
+        LAG(order_purchase_timestamp) OVER (
+            PARTITION BY customer_unique_id
+            ORDER BY order_purchase_timestamp
+        ) AS prev_purchase
+    FROM customer_orders
+    WHERE order_seq <= 2
+)
+SELECT
+    ROUND(AVG(EXTRACT(EPOCH FROM (order_purchase_timestamp - prev_purchase)) / 86400.0), 1) AS avg_days_between,
+    ROUND(MIN(EXTRACT(EPOCH FROM (order_purchase_timestamp - prev_purchase)) / 86400.0), 1) AS min_days,
+    ROUND(MAX(EXTRACT(EPOCH FROM (order_purchase_timestamp - prev_purchase)) / 86400.0), 1) AS max_days,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY EXTRACT(EPOCH FROM (order_purchase_timestamp - prev_purchase)) / 86400.0
+    ) AS median_days
+FROM first_two
+WHERE order_seq = 2;
