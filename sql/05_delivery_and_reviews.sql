@@ -98,3 +98,37 @@ SELECT
 FROM joined
 GROUP BY review_score
 ORDER BY review_score;
+
+-- ------------------------------------------------------------
+-- 4. Топ-10 категорий по средней задержке доставки
+-- ------------------------------------------------------------
+WITH order_delivery AS (
+    SELECT
+        order_id,
+        EXTRACT(EPOCH FROM (order_delivered_customer_date - order_estimated_delivery_date)) / 86400.0 AS delay_days
+    FROM raw.orders
+    WHERE order_status = 'delivered'
+      AND order_delivered_customer_date IS NOT NULL
+      AND order_estimated_delivery_date IS NOT NULL
+),
+order_category AS (
+    -- Категория заказа: берём по первой позиции (для простоты)
+    SELECT DISTINCT ON (oi.order_id)
+        oi.order_id,
+        COALESCE(t.product_category_name_english, p.product_category_name, 'unknown') AS category
+    FROM raw.order_items oi
+    LEFT JOIN raw.products p ON oi.product_id = p.product_id
+    LEFT JOIN raw.product_category_translation t ON p.product_category_name = t.product_category_name
+    ORDER BY oi.order_id, oi.order_item_id
+)
+SELECT
+    c.category,
+    COUNT(*)                              AS orders,
+    ROUND(AVG(d.delay_days)::numeric, 2)  AS avg_delay_days,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE d.delay_days > 0) / COUNT(*), 2) AS late_rate_pct
+FROM order_delivery d
+JOIN order_category c ON d.order_id = c.order_id
+GROUP BY c.category
+HAVING COUNT(*) >= 100          -- только категории с достаточным объёмом
+ORDER BY avg_delay_days DESC
+LIMIT 10;
