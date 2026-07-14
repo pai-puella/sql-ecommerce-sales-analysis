@@ -2,7 +2,7 @@
 # This is a SQL-first project; keep the language bar representative.
 
 # Do not count Jupyter notebooks toward the language stats (they are large JSON).
-*.ipynb linguist-documentation
+*.ipynb linguist-vendored
 
 # Make sure SQL files are detected and counted.
 *.sql linguist-detectable=true
