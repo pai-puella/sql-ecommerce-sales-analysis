@@ -66,3 +66,35 @@ SELECT
 FROM joined
 GROUP BY delivery_group
 ORDER BY avg_review_score DESC;
+
+-- ------------------------------------------------------------
+-- 3. Распределение оценок 1-5 по группам доставки
+-- ------------------------------------------------------------
+WITH order_delivery AS (
+    SELECT
+        order_id,
+        EXTRACT(EPOCH FROM (order_delivered_customer_date - order_estimated_delivery_date)) / 86400.0 AS delay_days
+    FROM raw.orders
+    WHERE order_status = 'delivered'
+      AND order_delivered_customer_date IS NOT NULL
+      AND order_estimated_delivery_date IS NOT NULL
+),
+order_review AS (
+    SELECT order_id, ROUND(AVG(review_score::numeric)) AS review_score
+    FROM raw.order_reviews
+    GROUP BY order_id
+),
+joined AS (
+    SELECT
+        CASE WHEN d.delay_days > 0 THEN 'late' ELSE 'on_time_or_early' END AS delivery_group,
+        r.review_score
+    FROM order_delivery d
+    JOIN order_review r ON d.order_id = r.order_id
+)
+SELECT
+    review_score,
+    COUNT(*) FILTER (WHERE delivery_group = 'on_time_or_early') AS on_time_or_early,
+    COUNT(*) FILTER (WHERE delivery_group = 'late')            AS late
+FROM joined
+GROUP BY review_score
+ORDER BY review_score;
