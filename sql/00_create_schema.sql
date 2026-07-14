@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS raw.order_reviews  CASCADE;
 DROP TABLE IF EXISTS raw.orders         CASCADE;
 DROP TABLE IF EXISTS raw.products       CASCADE;
 DROP TABLE IF EXISTS raw.customers      CASCADE;
+DROP TABLE IF EXISTS raw.product_category_translation CASCADE;
 
 -- ------------------------------------------------------------
 -- customers
@@ -107,3 +108,23 @@ CREATE INDEX idx_order_items_product_id ON raw.order_items(product_id);
 CREATE INDEX idx_payments_order_id      ON raw.order_payments(order_id);
 CREATE INDEX idx_reviews_order_id       ON raw.order_reviews(order_id);
 CREATE INDEX idx_products_category      ON raw.products(product_category_name);
+
+-- ------------------------------------------------------------
+-- product_category_translation
+-- ------------------------------------------------------------
+CREATE TABLE raw.product_category_translation (
+    product_category_name        TEXT PRIMARY KEY,
+    product_category_name_english TEXT NOT NULL
+);
+
+-- ------------------------------------------------------------
+-- Загрузка данных из CSV
+-- Выполняется из корня проекта: psql -f sql/00_create_schema.sql
+-- ------------------------------------------------------------
+\COPY raw.customers FROM 'data/olist_customers_dataset.csv' WITH (FORMAT csv, HEADER true);
+\COPY raw.orders FROM 'data/olist_orders_dataset.csv' WITH (FORMAT csv, HEADER true);
+\COPY raw.products FROM 'data/olist_products_dataset.csv' WITH (FORMAT csv, HEADER true);
+\COPY raw.order_items FROM 'data/olist_order_items_dataset.csv' WITH (FORMAT csv, HEADER true);
+\COPY raw.order_payments FROM 'data/olist_order_payments_dataset.csv' WITH (FORMAT csv, HEADER true);
+\COPY raw.order_reviews (review_id, order_id, review_score, review_comment_title, review_comment_message, review_creation_date, review_answer_timestamp) FROM 'data/olist_order_reviews_dataset.csv' WITH (FORMAT csv, HEADER true);
+\COPY raw.product_category_translation FROM 'data/product_category_name_translation.csv' WITH (FORMAT csv, HEADER true, ENCODING 'UTF8');
