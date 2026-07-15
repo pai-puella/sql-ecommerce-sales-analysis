@@ -3,6 +3,7 @@ data/*.csv
 
 # Python
 venv/
+.venv/
 __pycache__/
 *.pyc
 .env
